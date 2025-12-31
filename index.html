@@ -9,19 +9,18 @@
 <body>
   <div class="app-shell">
     <header class="app-header">
-      <div class="app-title">
+      <div class="app-header-left">
         <img id="iconLogo" class="icon-logo" alt="Icon logo" />
-        <span id="appTitleText">Card Break Team Roller</span>
+        <div class="app-header-text">
+          <h1 class="app-title">Card Break Team Roller</h1>
+          <p class="app-subtitle">Simple random team selector for card breaks</p>
+        </div>
       </div>
-      <nav class="app-nav">
-        <button class="nav-btn nav-btn--active" data-view="streamView">Stream View</button>
-        <button class="nav-btn" data-view="controlView">Control Panel</button>
-      </nav>
     </header>
 
     <main class="app-main">
-      <!-- STREAM VIEW (for OBS browser capture) -->
-      <section id="streamView" class="view view--active">
+      <!-- STREAM AREA (top, for OBS crop) -->
+      <section class="stream-section">
         <div class="stream-header">
           <div class="stream-brand">
             <img id="bannerLogo" class="banner-logo" alt="Banner logo" />
@@ -30,21 +29,20 @@
               <div class="stream-subtitle">Random Team Break</div>
             </div>
           </div>
-          <div id="liveStatus" class="live-status">LIVE</div>
         </div>
 
-        <div class="stream-grid-wrapper">
+        <div class="teams-grid-wrapper">
           <div id="teamsGrid" class="teams-grid"></div>
         </div>
 
         <div id="watermark" class="watermark"></div>
       </section>
 
-      <!-- CONTROL PANEL (for the streamer only) -->
-      <section id="controlView" class="view">
-        <div class="control-layout">
-          <!-- Rolling / actions -->
-          <div class="control-column">
+      <!-- CONTROLS (below grid) -->
+      <section class="controls-section">
+        <div class="controls-grid">
+          <!-- Roll / current viewer -->
+          <div class="control-panel">
             <h2>Roll Next Team</h2>
             <label class="field-label" for="viewerNameInput">Current bidder / viewer</label>
             <input
@@ -55,16 +53,15 @@
             />
 
             <button id="rollButton" class="primary-btn">Roll Random Team</button>
-
             <button id="resetButton" class="secondary-btn secondary-btn--danger">
-              Reset Break (Clear All)
+              Reset Break (clear all)
             </button>
 
             <p id="lastResult" class="last-result"></p>
           </div>
 
-          <!-- Assignments table -->
-          <div class="control-column">
+          <!-- Assignment list -->
+          <div class="control-panel">
             <h2>Assignments</h2>
             <div class="table-wrapper">
               <table class="assignments-table">
@@ -77,17 +74,17 @@
                   </tr>
                 </thead>
                 <tbody id="assignmentsBody">
-                  <!-- Rows added dynamically -->
+                  <!-- rows added via JS -->
                 </tbody>
               </table>
             </div>
           </div>
 
-          <!-- Branding / theme controls -->
-          <div class="control-column">
-            <h2>Branding & Theme</h2>
+          <!-- Branding & simple theme -->
+          <div class="control-panel">
+            <h2>Branding</h2>
 
-            <label class="field-label" for="streamNameInput">Stream / Channel Name</label>
+            <label class="field-label" for="streamNameInput">Stream / channel name</label>
             <input
               id="streamNameInput"
               class="text-input"
@@ -96,7 +93,7 @@
             />
 
             <label class="field-label" for="bannerLogoInput">
-              Banner Logo URL (top-left)
+              Banner logo URL (left side)
             </label>
             <input
               id="bannerLogoInput"
@@ -106,7 +103,7 @@
             />
 
             <label class="field-label" for="iconLogoInput">
-              Icon Logo URL (header)
+              Small icon URL (header)
             </label>
             <input
               id="iconLogoInput"
@@ -115,28 +112,29 @@
               placeholder="https://example.com/icon.png"
             />
 
+            <h3 class="subheading">Colors (optional)</h3>
             <div class="color-controls">
               <div class="color-field">
-                <label for="colorPrimary">Primary Color</label>
+                <label for="colorPrimary">Accent color</label>
                 <input id="colorPrimary" type="color" />
               </div>
               <div class="color-field">
-                <label for="colorAccent">Accent Color</label>
+                <label for="colorAccent">Highlight color</label>
                 <input id="colorAccent" type="color" />
               </div>
               <div class="color-field">
-                <label for="colorBackground">Background</label>
+                <label for="colorBackground">Page background</label>
                 <input id="colorBackground" type="color" />
               </div>
               <div class="color-field">
-                <label for="colorCard">Card Background</label>
+                <label for="colorCard">Card background</label>
                 <input id="colorCard" type="color" />
               </div>
             </div>
 
             <p class="hint-text">
-              Tip: In OBS, add a browser source pointing to this page and use the Stream
-              View tab for a clean overlay.
+              In OBS, add a Browser source pointed at this page and crop to just the top
+              “Teams” area for the overlay.
             </p>
           </div>
         </div>
@@ -144,7 +142,7 @@
     </main>
 
     <footer class="app-footer">
-      Card Break Team Roller · Frontend-only demo
+      Card Break Team Roller · Local browser-only demo (no login / no backend)
     </footer>
   </div>
 
