@@ -38,7 +38,7 @@ const TEAMS = [
   { id: "wsh", name: "Washington Commanders", short: "WSH", logoUrl: "" }
 ];
 
-const STORAGE_KEY = "card_break_roller_state_v2";
+const STORAGE_KEY = "card_break_roller_state_v3";
 
 // Grid constants: 10 x 4 with a central 2x4 streamer block.
 const GRID_COLUMNS = 10;
@@ -47,13 +47,13 @@ const TOTAL_CELLS = GRID_COLUMNS * GRID_ROWS;
 
 // Reserved indices for streamer block (row-major, 0-based):
 // Layout (C = col, R = row):
-// R1: 0..9 (all teams)
-// R2: 10 11 12 [13 14 15 16] 17 18 19
-// R3: 20 21 22 [23 24 25 26] 27 28 29
-// R4: 30..39 (all teams)
+// R1:  0..9 (all teams)
+// R2:  10 11 12 [13 14 15 16] 17 18 19
+// R3:  20 21 22 [23 24 25 26] 27 28 29
+// R4:  30..39 (all teams)
 const RESERVED_INDICES = new Set([13, 14, 15, 16, 23, 24, 25, 26]);
 
-// Precompute non-reserved positions for teams.
+// Non-reserved positions for teams.
 const NON_RESERVED_INDICES = Array.from({ length: TOTAL_CELLS }, (_, i) => i).filter(
   (i) => !RESERVED_INDICES.has(i)
 );
@@ -65,8 +65,7 @@ const state = {
   assignments: [],
   settings: {
     streamName: "",
-    bannerLogoUrl: "",
-    iconLogoUrl: "",
+    bannerImageData: "", // uploaded streamer image (data URL)
     colors: {}, // CSS variable overrides
     streamBgColor: "#ffffff",
     useGradientBg: false
@@ -103,8 +102,7 @@ function loadState() {
     state.assignments = parsed.assignments || [];
     state.settings = {
       streamName: savedSettings.streamName || "",
-      bannerLogoUrl: savedSettings.bannerLogoUrl || "",
-      iconLogoUrl: savedSettings.iconLogoUrl || "",
+      bannerImageData: savedSettings.bannerImageData || "",
       colors: savedSettings.colors || {},
       streamBgColor: savedSettings.streamBgColor || "#ffffff",
       useGradientBg: !!savedSettings.useGradientBg
@@ -124,8 +122,7 @@ function initDefaultState() {
   state.assignments = [];
   state.settings = {
     streamName: "",
-    bannerLogoUrl: "",
-    iconLogoUrl: "",
+    bannerImageData: "",
     colors: {},
     streamBgColor: "#ffffff",
     useGradientBg: false
@@ -204,13 +201,8 @@ const assignmentsBodyEl = document.getElementById("assignmentsBody");
 
 const viewerNameInputEl = document.getElementById("viewerNameInput");
 const streamNameInputEl = document.getElementById("streamNameInput");
-const bannerLogoInputEl = document.getElementById("bannerLogoInput");
-const iconLogoInputEl = document.getElementById("iconLogoInput");
 const lastResultEl = document.getElementById("lastResult");
 
-const streamNameDisplayEl = document.getElementById("streamNameDisplay");
-const bannerLogoEl = document.getElementById("bannerLogo");
-const iconLogoEl = document.getElementById("iconLogo");
 const watermarkEl = document.getElementById("watermark");
 
 const rollButtonEl = document.getElementById("rollButton");
@@ -221,6 +213,10 @@ const colorCardBorderEl = document.getElementById("colorCardBorder");
 const colorAccentEl = document.getElementById("colorAccent");
 const useGradientBgEl = document.getElementById("useGradientBg");
 const streamSectionEl = document.getElementById("streamSection");
+
+const bannerDropZoneEl = document.getElementById("bannerDropZone");
+const bannerFileInputEl = document.getElementById("bannerFileInput");
+const bannerPreviewEl = document.getElementById("bannerPreview");
 
 // -------- RENDERING --------
 
@@ -288,13 +284,13 @@ function renderTeamsGrid() {
   const innerStreamer = document.createElement("div");
   innerStreamer.className = "streamer-card-inner";
 
-  const hasImage = !!state.settings.bannerLogoUrl;
+  const hasImage = !!state.settings.bannerImageData;
   const hasName = !!state.settings.streamName;
 
   if (hasImage) {
     const img = document.createElement("img");
     img.className = "streamer-card-image";
-    img.src = state.settings.bannerLogoUrl;
+    img.src = state.settings.bannerImageData;
     img.alt = state.settings.streamName || "Streamer";
     innerStreamer.appendChild(img);
   }
@@ -336,41 +332,31 @@ function renderAssignments() {
 }
 
 function renderBranding() {
-  const { streamName, bannerLogoUrl, iconLogoUrl } = state.settings;
+  const { streamName, bannerImageData } = state.settings;
 
-  // Top header + watermark
-  streamNameDisplayEl.textContent = streamName || "";
+  // Watermark
   watermarkEl.textContent = streamName ? streamName.toUpperCase() : "";
 
-  // Banner logo (top-left)
-  if (bannerLogoUrl) {
-    bannerLogoEl.src = bannerLogoUrl;
-    bannerLogoEl.style.display = "block";
-  } else {
-    bannerLogoEl.src = "";
-    bannerLogoEl.style.display = "none";
-  }
-
-  // Icon logo (header)
-  if (iconLogoUrl) {
-    iconLogoEl.src = iconLogoUrl;
-    iconLogoEl.style.display = "block";
-  } else {
-    iconLogoEl.src = "";
-    iconLogoEl.style.display = "none";
-  }
-
-  // Form inputs
+  // Input
   streamNameInputEl.value = streamName || "";
-  bannerLogoInputEl.value = bannerLogoUrl || "";
-  iconLogoInputEl.value = iconLogoUrl || "";
+
+  // Streamer image preview
+  bannerPreviewEl.innerHTML = "";
+  if (bannerImageData) {
+    const img = document.createElement("img");
+    img.src = bannerImageData;
+    img.alt = streamName || "Streamer";
+    bannerPreviewEl.appendChild(img);
+  } else {
+    bannerPreviewEl.textContent = "No image selected";
+  }
 
   // Streamer card uses same data; re-render grid to reflect it
   renderTeamsGrid();
 }
 
 function initColorControls() {
-  // Stream background color comes directly from settings
+  // Stream background color from settings
   colorStreamBgEl.value = state.settings.streamBgColor || "#ffffff";
   useGradientBgEl.checked = !!state.settings.useGradientBg;
 
@@ -431,12 +417,15 @@ function handleReset() {
   if (!confirmed) return;
 
   // Preserve theme settings
-  const { colors, streamBgColor, useGradientBg } = state.settings;
+  const { colors, streamBgColor, useGradientBg, bannerImageData, streamName } =
+    state.settings;
 
   initDefaultState();
   state.settings.colors = colors || {};
   state.settings.streamBgColor = streamBgColor || "#ffffff";
   state.settings.useGradientBg = !!useGradientBg;
+  state.settings.bannerImageData = bannerImageData || "";
+  state.settings.streamName = streamName || "";
 
   restoreCustomCssColors();
   applyStreamBackground();
@@ -451,8 +440,6 @@ function handleReset() {
 
 function handleBrandingChange() {
   state.settings.streamName = streamNameInputEl.value.trim();
-  state.settings.bannerLogoUrl = bannerLogoInputEl.value.trim();
-  state.settings.iconLogoUrl = iconLogoInputEl.value.trim();
   saveState();
   renderBranding();
 }
@@ -483,6 +470,53 @@ function setupColorEvents() {
   });
 }
 
+// File upload (banner / streamer image)
+
+function handleBannerFile(file) {
+  if (!file || !file.type.startsWith("image/")) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    state.settings.bannerImageData = reader.result;
+    saveState();
+    renderBranding();
+  };
+  reader.readAsDataURL(file);
+}
+
+function setupBannerUpload() {
+  // Click zone triggers file input
+  bannerDropZoneEl.addEventListener("click", () => {
+    bannerFileInputEl.click();
+  });
+
+  // Handle file selection
+  bannerFileInputEl.addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    handleBannerFile(file);
+    // Reset input so selecting the same file again still triggers change
+    e.target.value = "";
+  });
+
+  // Drag & drop
+  bannerDropZoneEl.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    bannerDropZoneEl.classList.add("upload-dropzone--hover");
+  });
+
+  bannerDropZoneEl.addEventListener("dragleave", (e) => {
+    e.preventDefault();
+    bannerDropZoneEl.classList.remove("upload-dropzone--hover");
+  });
+
+  bannerDropZoneEl.addEventListener("drop", (e) => {
+    e.preventDefault();
+    bannerDropZoneEl.classList.remove("upload-dropzone--hover");
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    handleBannerFile(file);
+  });
+}
+
 // -------- INIT --------
 
 function init() {
@@ -496,13 +530,12 @@ function init() {
 
   initColorControls();
   setupColorEvents();
+  setupBannerUpload();
 
   rollButtonEl.addEventListener("click", handleRoll);
   resetButtonEl.addEventListener("click", handleReset);
 
   streamNameInputEl.addEventListener("input", handleBrandingChange);
-  bannerLogoInputEl.addEventListener("change", handleBrandingChange);
-  iconLogoInputEl.addEventListener("change", handleBrandingChange);
 }
 
 document.addEventListener("DOMContentLoaded", init);
