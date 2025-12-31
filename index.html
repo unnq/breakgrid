@@ -9,28 +9,15 @@
 <body>
   <div class="app-shell">
     <header class="app-header">
-      <div class="app-header-left">
-        <img id="iconLogo" class="icon-logo" alt="Icon logo" />
-        <div class="app-header-text">
-          <h1 class="app-title">Card Break Team Roller</h1>
-          <p class="app-subtitle">Simple random team selector for card breaks</p>
-        </div>
+      <div class="app-header-text">
+        <h1 class="app-title">Card Break Team Roller</h1>
+        <p class="app-subtitle">Simple random team selector for card breaks</p>
       </div>
     </header>
 
     <main class="app-main">
-      <!-- STREAM AREA (for OBS crop, portrait-oriented) -->
+      <!-- STREAM AREA (for OBS crop, portrait grid area only) -->
       <section class="stream-section" id="streamSection">
-        <div class="stream-header">
-          <div class="stream-brand">
-            <img id="bannerLogo" class="banner-logo" alt="Banner logo" />
-            <div class="stream-text-block">
-              <div id="streamNameDisplay" class="stream-name"></div>
-              <div class="stream-subtitle">Random Team Break</div>
-            </div>
-          </div>
-        </div>
-
         <div class="teams-grid-wrapper">
           <!-- 10 x 4 grid, central block reserved for streamer -->
           <div id="teamsGrid" class="teams-grid"></div>
@@ -93,25 +80,20 @@
               placeholder="e.g. KlutchBros Breaks"
             />
 
-            <label class="field-label" for="bannerLogoInput">
-              Banner / streamer image URL
-            </label>
-            <input
-              id="bannerLogoInput"
-              class="text-input"
-              type="text"
-              placeholder="https://example.com/banner.png"
-            />
-
-            <label class="field-label" for="iconLogoInput">
-              Small icon URL (header)
-            </label>
-            <input
-              id="iconLogoInput"
-              class="text-input"
-              type="text"
-              placeholder="https://example.com/icon.png"
-            />
+            <h3 class="subheading">Streamer image</h3>
+            <div
+              id="bannerDropZone"
+              class="upload-dropzone"
+            >
+              <span class="upload-text">Click or drag an image here</span>
+              <input
+                type="file"
+                id="bannerFileInput"
+                accept="image/*"
+                class="upload-input"
+              />
+            </div>
+            <div id="bannerPreview" class="upload-preview"></div>
 
             <h3 class="subheading">Colors</h3>
             <div class="color-controls">
@@ -135,8 +117,7 @@
             </label>
 
             <p class="hint-text">
-              In OBS, add a Browser source pointed at this page and crop to just the top
-              grid area for the overlay.
+              In OBS, add a Browser source pointed at this page and crop to just the grid area for the overlay.
             </p>
           </div>
         </div>
