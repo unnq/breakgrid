@@ -1,7 +1,7 @@
 // js/app.js
 
-// ------- TEAM DATA -------
-// Add logoUrl paths if you have local or hosted team logos.
+// -------- TEAM DATA --------
+// Add logoUrl paths later when you have actual team logo images.
 
 const TEAMS = [
   { id: "ari", name: "Arizona Cardinals", short: "ARI", logoUrl: "" },
@@ -38,9 +38,27 @@ const TEAMS = [
   { id: "wsh", name: "Washington Commanders", short: "WSH", logoUrl: "" }
 ];
 
-const STORAGE_KEY = "card_break_roller_state_v1";
+const STORAGE_KEY = "card_break_roller_state_v2";
 
-// ------- STATE -------
+// Grid constants: 10 x 4 with a central 2x4 streamer block.
+const GRID_COLUMNS = 10;
+const GRID_ROWS = 4;
+const TOTAL_CELLS = GRID_COLUMNS * GRID_ROWS;
+
+// Reserved indices for streamer block (row-major, 0-based):
+// Layout (C = col, R = row):
+// R1: 0..9 (all teams)
+// R2: 10 11 12 [13 14 15 16] 17 18 19
+// R3: 20 21 22 [23 24 25 26] 27 28 29
+// R4: 30..39 (all teams)
+const RESERVED_INDICES = new Set([13, 14, 15, 16, 23, 24, 25, 26]);
+
+// Precompute non-reserved positions for teams.
+const NON_RESERVED_INDICES = Array.from({ length: TOTAL_CELLS }, (_, i) => i).filter(
+  (i) => !RESERVED_INDICES.has(i)
+);
+
+// -------- STATE --------
 
 const state = {
   teams: [],
@@ -49,11 +67,13 @@ const state = {
     streamName: "",
     bannerLogoUrl: "",
     iconLogoUrl: "",
-    colors: {}
+    colors: {}, // CSS variable overrides
+    streamBgColor: "#ffffff",
+    useGradientBg: false
   }
 };
 
-// ------- UTILITIES -------
+// -------- UTILITIES --------
 
 function loadState() {
   try {
@@ -62,8 +82,9 @@ function loadState() {
       initDefaultState();
       return;
     }
-    const parsed = JSON.parse(raw);
 
+    const parsed = JSON.parse(raw);
+    const savedSettings = parsed.settings || {};
     const teamsById = {};
     (parsed.teams || []).forEach((t) => {
       teamsById[t.id] = t;
@@ -80,7 +101,14 @@ function loadState() {
     });
 
     state.assignments = parsed.assignments || [];
-    state.settings = parsed.settings || state.settings;
+    state.settings = {
+      streamName: savedSettings.streamName || "",
+      bannerLogoUrl: savedSettings.bannerLogoUrl || "",
+      iconLogoUrl: savedSettings.iconLogoUrl || "",
+      colors: savedSettings.colors || {},
+      streamBgColor: savedSettings.streamBgColor || "#ffffff",
+      useGradientBg: !!savedSettings.useGradientBg
+    };
   } catch (err) {
     console.warn("Error loading state, starting fresh", err);
     initDefaultState();
@@ -98,7 +126,9 @@ function initDefaultState() {
     streamName: "",
     bannerLogoUrl: "",
     iconLogoUrl: "",
-    colors: {}
+    colors: {},
+    streamBgColor: "#ffffff",
+    useGradientBg: false
   };
 }
 
@@ -119,8 +149,6 @@ function formatTime(ts) {
   const d = new Date(ts);
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
-
-// color helpers
 
 function rgbToHex(color) {
   if (!color) return "#000000";
@@ -143,21 +171,33 @@ function rgbToHex(color) {
   return "#" + toHex(r) + toHex(g) + toHex(b);
 }
 
-function applyColor(varName, value) {
+function applyCssColor(varName, value) {
   document.documentElement.style.setProperty(varName, value);
   if (!state.settings.colors) state.settings.colors = {};
   state.settings.colors[varName] = value;
   saveState();
 }
 
-function restoreCustomColors() {
+function restoreCustomCssColors() {
   const colors = state.settings.colors || {};
   Object.entries(colors).forEach(([name, val]) => {
     document.documentElement.style.setProperty(name, val);
   });
 }
 
-// ------- DOM -------
+function applyStreamBackground() {
+  const color = state.settings.streamBgColor || "#ffffff";
+  if (state.settings.useGradientBg) {
+    // Simple gradient using selected color to white
+    streamSectionEl.style.backgroundImage = `linear-gradient(135deg, ${color}, #ffffff)`;
+    streamSectionEl.style.backgroundColor = "";
+  } else {
+    streamSectionEl.style.backgroundImage = "none";
+    streamSectionEl.style.backgroundColor = color;
+  }
+}
+
+// -------- DOM ELEMENTS --------
 
 const teamsGridEl = document.getElementById("teamsGrid");
 const assignmentsBodyEl = document.getElementById("assignmentsBody");
@@ -176,20 +216,32 @@ const watermarkEl = document.getElementById("watermark");
 const rollButtonEl = document.getElementById("rollButton");
 const resetButtonEl = document.getElementById("resetButton");
 
-const colorPrimaryEl = document.getElementById("colorPrimary");
+const colorStreamBgEl = document.getElementById("colorStreamBg");
+const colorCardBorderEl = document.getElementById("colorCardBorder");
 const colorAccentEl = document.getElementById("colorAccent");
-const colorBackgroundEl = document.getElementById("colorBackground");
-const colorCardEl = document.getElementById("colorCard");
+const useGradientBgEl = document.getElementById("useGradientBg");
+const streamSectionEl = document.getElementById("streamSection");
 
-// ------- RENDERING -------
+// -------- RENDERING --------
 
 function renderTeamsGrid() {
   teamsGridEl.innerHTML = "";
 
-  state.teams.forEach((team) => {
+  // Place team cards into the non-reserved positions
+  const teams = state.teams;
+  const maxTeams = Math.min(teams.length, NON_RESERVED_INDICES.length);
+
+  for (let i = 0; i < maxTeams; i++) {
+    const team = teams[i];
+    const cellIndex = NON_RESERVED_INDICES[i];
+    const row = Math.floor(cellIndex / GRID_COLUMNS) + 1;
+    const col = (cellIndex % GRID_COLUMNS) + 1;
+
     const card = document.createElement("div");
     card.className = "team-card" + (team.taken ? " team-card--taken" : "");
     card.dataset.teamId = team.id;
+    card.style.gridRow = String(row);
+    card.style.gridColumn = String(col);
 
     const inner = document.createElement("div");
     inner.className = "team-card-inner";
@@ -223,8 +275,37 @@ function renderTeamsGrid() {
 
     card.appendChild(inner);
     card.appendChild(labelRow);
+
     teamsGridEl.appendChild(card);
-  });
+  }
+
+  // Add central streamer block (one element spanning 2 rows x 4 cols)
+  const streamerCard = document.createElement("div");
+  streamerCard.className = "streamer-card";
+  streamerCard.style.gridColumn = "4 / span 4"; // columns 4,5,6,7
+  streamerCard.style.gridRow = "2 / span 2"; // rows 2 and 3
+
+  const innerStreamer = document.createElement("div");
+  innerStreamer.className = "streamer-card-inner";
+
+  const hasImage = !!state.settings.bannerLogoUrl;
+  const hasName = !!state.settings.streamName;
+
+  if (hasImage) {
+    const img = document.createElement("img");
+    img.className = "streamer-card-image";
+    img.src = state.settings.bannerLogoUrl;
+    img.alt = state.settings.streamName || "Streamer";
+    innerStreamer.appendChild(img);
+  }
+
+  const nameDiv = document.createElement("div");
+  nameDiv.className = "streamer-card-name";
+  nameDiv.textContent = hasName ? state.settings.streamName : "Stream Name";
+  innerStreamer.appendChild(nameDiv);
+
+  streamerCard.appendChild(innerStreamer);
+  teamsGridEl.appendChild(streamerCard);
 }
 
 function renderAssignments() {
@@ -257,9 +338,11 @@ function renderAssignments() {
 function renderBranding() {
   const { streamName, bannerLogoUrl, iconLogoUrl } = state.settings;
 
+  // Top header + watermark
   streamNameDisplayEl.textContent = streamName || "";
   watermarkEl.textContent = streamName ? streamName.toUpperCase() : "";
 
+  // Banner logo (top-left)
   if (bannerLogoUrl) {
     bannerLogoEl.src = bannerLogoUrl;
     bannerLogoEl.style.display = "block";
@@ -268,6 +351,7 @@ function renderBranding() {
     bannerLogoEl.style.display = "none";
   }
 
+  // Icon logo (header)
   if (iconLogoUrl) {
     iconLogoEl.src = iconLogoUrl;
     iconLogoEl.style.display = "block";
@@ -276,26 +360,38 @@ function renderBranding() {
     iconLogoEl.style.display = "none";
   }
 
+  // Form inputs
   streamNameInputEl.value = streamName || "";
   bannerLogoInputEl.value = bannerLogoUrl || "";
   iconLogoInputEl.value = iconLogoUrl || "";
+
+  // Streamer card uses same data; re-render grid to reflect it
+  renderTeamsGrid();
 }
 
 function initColorControls() {
+  // Stream background color comes directly from settings
+  colorStreamBgEl.value = state.settings.streamBgColor || "#ffffff";
+  useGradientBgEl.checked = !!state.settings.useGradientBg;
+
   const root = getComputedStyle(document.documentElement);
 
-  const primary = rgbToHex(root.getPropertyValue("--primary").trim() || "#2563eb");
-  const accent = rgbToHex(root.getPropertyValue("--accent").trim() || "#ef4444");
-  const bg = rgbToHex(root.getPropertyValue("--bg-page").trim() || "#f5f5f7");
-  const card = rgbToHex(root.getPropertyValue("--bg-card").trim() || "#ffffff");
+  // Card border
+  const cardBorderFromState =
+    state.settings.colors["--card-border-color"] ||
+    root.getPropertyValue("--card-border-color").trim() ||
+    "#d1d5db";
+  colorCardBorderEl.value = rgbToHex(cardBorderFromState);
 
-  colorPrimaryEl.value = primary;
-  colorAccentEl.value = accent;
-  colorBackgroundEl.value = bg;
-  colorCardEl.value = card;
+  // Accent
+  const accentFromState =
+    state.settings.colors["--accent"] ||
+    root.getPropertyValue("--accent").trim() ||
+    "#ef4444";
+  colorAccentEl.value = rgbToHex(accentFromState);
 }
 
-// ------- EVENTS -------
+// -------- EVENTS --------
 
 function handleRoll() {
   const viewerName = viewerNameInputEl.value.trim() || "(no name)";
@@ -308,6 +404,7 @@ function handleRoll() {
 
   const picked = randomItem(available);
   const idx = state.teams.findIndex((t) => t.id === picked.id);
+
   if (idx !== -1) {
     state.teams[idx].taken = true;
     state.teams[idx].takenBy = viewerName;
@@ -333,14 +430,21 @@ function handleReset() {
   const confirmed = window.confirm("Reset all teams and assignments?");
   if (!confirmed) return;
 
-  const colors = state.settings.colors || {};
-  initDefaultState();
-  state.settings.colors = colors; // keep custom colors
+  // Preserve theme settings
+  const { colors, streamBgColor, useGradientBg } = state.settings;
 
-  restoreCustomColors();
+  initDefaultState();
+  state.settings.colors = colors || {};
+  state.settings.streamBgColor = streamBgColor || "#ffffff";
+  state.settings.useGradientBg = !!useGradientBg;
+
+  restoreCustomCssColors();
+  applyStreamBackground();
   renderTeamsGrid();
   renderAssignments();
   renderBranding();
+  initColorControls();
+
   lastResultEl.textContent = "Break reset.";
   saveState();
 }
@@ -349,33 +453,47 @@ function handleBrandingChange() {
   state.settings.streamName = streamNameInputEl.value.trim();
   state.settings.bannerLogoUrl = bannerLogoInputEl.value.trim();
   state.settings.iconLogoUrl = iconLogoInputEl.value.trim();
-  renderBranding();
   saveState();
+  renderBranding();
 }
 
 function setupColorEvents() {
-  colorPrimaryEl.addEventListener("input", (e) =>
-    applyColor("--primary", e.target.value)
-  );
-  colorAccentEl.addEventListener("input", (e) =>
-    applyColor("--accent", e.target.value)
-  );
-  colorBackgroundEl.addEventListener("input", (e) =>
-    applyColor("--bg-page", e.target.value)
-  );
-  colorCardEl.addEventListener("input", (e) =>
-    applyColor("--bg-card", e.target.value)
-  );
+  // Stream background color
+  colorStreamBgEl.addEventListener("input", (e) => {
+    state.settings.streamBgColor = e.target.value || "#ffffff";
+    applyStreamBackground();
+    saveState();
+  });
+
+  // Gradient toggle
+  useGradientBgEl.addEventListener("change", (e) => {
+    state.settings.useGradientBg = e.target.checked;
+    applyStreamBackground();
+    saveState();
+  });
+
+  // Card border color (CSS var)
+  colorCardBorderEl.addEventListener("input", (e) => {
+    applyCssColor("--card-border-color", e.target.value);
+  });
+
+  // Accent color for X / highlights (CSS var)
+  colorAccentEl.addEventListener("input", (e) => {
+    applyCssColor("--accent", e.target.value);
+  });
 }
 
-// ------- INIT -------
+// -------- INIT --------
 
 function init() {
   loadState();
-  restoreCustomColors();
+  restoreCustomCssColors();
+  applyStreamBackground();
+
   renderTeamsGrid();
   renderAssignments();
   renderBranding();
+
   initColorControls();
   setupColorEvents();
 
