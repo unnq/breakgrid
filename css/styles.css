@@ -199,6 +199,7 @@ body {
 /* Streamer block (center 2 rows x 4 columns, no forced aspect ratio) */
 
 .streamer-card {
+  aspect-ratio: 2 / 1;
   border-radius: 0;
   border: 3px solid var(--card-border-color);
   background-color: #ffffff;
