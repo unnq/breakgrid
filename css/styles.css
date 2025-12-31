@@ -90,7 +90,20 @@ body {
   margin-bottom: 1rem;
 }
 
+.stream-view {
+  /* both auction and results views live here and toggle via display */
+}
 
+.stream-view--hidden {
+  display: none;
+}
+
+/* Auction grid wrapper */
+
+.teams-grid-wrapper {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 0.75rem;
+}
 
 /* Fixed 10 x 4 grid for portrait capture */
 
@@ -196,10 +209,9 @@ body {
   opacity: 1;
 }
 
-/* Streamer block (center 2 rows x 4 columns, no forced aspect ratio) */
+/* Streamer block (center 2 rows x 4 columns, image only in grid) */
 
 .streamer-card {
-  aspect-ratio: 2 / 1;
   border-radius: 0;
   border: 3px solid var(--card-border-color);
   background-color: #ffffff;
@@ -212,9 +224,8 @@ body {
 
 .streamer-card-inner {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
+  justify-content: center;
   width: 100%;
   height: 100%;
 }
@@ -225,12 +236,7 @@ body {
   object-fit: contain;
 }
 
-.streamer-card-name {
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-/* Watermark under grid */
+/* Watermark under stream content */
 
 .watermark {
   margin-top: 0.4rem;
@@ -241,6 +247,62 @@ body {
   color: var(--watermark-color);
   text-align: right;
   white-space: nowrap;
+}
+
+/* Results view */
+
+.results-grid-wrapper {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 0.75rem;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 4px;
+}
+
+.result-card {
+  background-color: #ffffff;
+  border-radius: 0;
+  border: 3px solid var(--card-border-color);
+  padding: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 80px;
+}
+
+.result-team-logo {
+  max-width: 40px;
+  max-height: 40px;
+  object-fit: contain;
+}
+
+.result-team-abbrev {
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.result-team-name {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 0.1rem;
+}
+
+.result-viewer-name {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.result-viewer-name--unassigned {
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 /* Controls section */
@@ -341,6 +403,32 @@ body {
 .last-result {
   margin-top: 0.6rem;
   font-size: 0.85rem;
+}
+
+/* View toggle */
+
+.view-toggle {
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.view-toggle-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.view-toggle-btn {
+  margin-top: 0; /* override default margin-top on buttons in that area */
+  padding: 4px 8px;
+}
+
+.view-toggle-btn--active {
+  background-color: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
 }
 
 /* Table */
