@@ -19,8 +19,8 @@
     </header>
 
     <main class="app-main">
-      <!-- STREAM AREA (top, for OBS crop) -->
-      <section class="stream-section">
+      <!-- STREAM AREA (for OBS crop, portrait-oriented) -->
+      <section class="stream-section" id="streamSection">
         <div class="stream-header">
           <div class="stream-brand">
             <img id="bannerLogo" class="banner-logo" alt="Banner logo" />
@@ -32,13 +32,14 @@
         </div>
 
         <div class="teams-grid-wrapper">
+          <!-- 10 x 4 grid, central block reserved for streamer -->
           <div id="teamsGrid" class="teams-grid"></div>
         </div>
 
         <div id="watermark" class="watermark"></div>
       </section>
 
-      <!-- CONTROLS (below grid) -->
+      <!-- CONTROLS BELOW GRID -->
       <section class="controls-section">
         <div class="controls-grid">
           <!-- Roll / current viewer -->
@@ -80,7 +81,7 @@
             </div>
           </div>
 
-          <!-- Branding & simple theme -->
+          <!-- Branding & color controls -->
           <div class="control-panel">
             <h2>Branding</h2>
 
@@ -93,7 +94,7 @@
             />
 
             <label class="field-label" for="bannerLogoInput">
-              Banner logo URL (left side)
+              Banner / streamer image URL
             </label>
             <input
               id="bannerLogoInput"
@@ -112,29 +113,30 @@
               placeholder="https://example.com/icon.png"
             />
 
-            <h3 class="subheading">Colors (optional)</h3>
+            <h3 class="subheading">Colors</h3>
             <div class="color-controls">
               <div class="color-field">
-                <label for="colorPrimary">Accent color</label>
-                <input id="colorPrimary" type="color" />
+                <label for="colorStreamBg">Stream background</label>
+                <input id="colorStreamBg" type="color" />
               </div>
               <div class="color-field">
-                <label for="colorAccent">Highlight color</label>
+                <label for="colorCardBorder">Card border</label>
+                <input id="colorCardBorder" type="color" />
+              </div>
+              <div class="color-field">
+                <label for="colorAccent">Accent (X / highlights)</label>
                 <input id="colorAccent" type="color" />
-              </div>
-              <div class="color-field">
-                <label for="colorBackground">Page background</label>
-                <input id="colorBackground" type="color" />
-              </div>
-              <div class="color-field">
-                <label for="colorCard">Card background</label>
-                <input id="colorCard" type="color" />
               </div>
             </div>
 
+            <label class="field-inline">
+              <input type="checkbox" id="useGradientBg" />
+              Use gradient background for stream area
+            </label>
+
             <p class="hint-text">
               In OBS, add a Browser source pointed at this page and crop to just the top
-              “Teams” area for the overlay.
+              grid area for the overlay.
             </p>
           </div>
         </div>
