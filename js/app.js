@@ -37,8 +37,8 @@ const TEAMS = [
   { id: "wsh", name: "Washington Commanders", short: "WSH", logoUrl: "assets/logos/commanders.webp" }
 ];
 
-
-const STORAGE_KEY = "card_break_roller_state_v4";
+const STORAGE_KEY = "card_break_roller_state_v5";
+const DEFAULT_STREAMER_IMAGE = "assets/klutchred.png";
 
 // Grid constants: 10 x 4 with a central 2x4 streamer block.
 const GRID_COLUMNS = 10;
@@ -64,9 +64,9 @@ const state = {
   assignments: [],
   settings: {
     streamName: "",
-    bannerImageData: "", // uploaded streamer image (data URL)
-    colors: {}, // CSS variable overrides
-    streamBgColor: "#ffffff",
+    bannerImageData: DEFAULT_STREAMER_IMAGE, // default streamer image
+    colors: {},
+    streamBgColor: "#000000", // default black background
     useGradientBg: false,
     viewMode: "auction" // "auction" | "results"
   }
@@ -102,9 +102,9 @@ function loadState() {
     state.assignments = parsed.assignments || [];
     state.settings = {
       streamName: savedSettings.streamName || "",
-      bannerImageData: savedSettings.bannerImageData || "",
+      bannerImageData: savedSettings.bannerImageData || DEFAULT_STREAMER_IMAGE,
       colors: savedSettings.colors || {},
-      streamBgColor: savedSettings.streamBgColor || "#ffffff",
+      streamBgColor: savedSettings.streamBgColor || "#000000",
       useGradientBg: !!savedSettings.useGradientBg,
       viewMode: savedSettings.viewMode === "results" ? "results" : "auction"
     };
@@ -123,9 +123,9 @@ function initDefaultState() {
   state.assignments = [];
   state.settings = {
     streamName: "",
-    bannerImageData: "",
+    bannerImageData: DEFAULT_STREAMER_IMAGE,
     colors: {},
-    streamBgColor: "#ffffff",
+    streamBgColor: "#000000",
     useGradientBg: false,
     viewMode: "auction"
   };
@@ -185,9 +185,9 @@ function restoreCustomCssColors() {
 }
 
 function applyStreamBackground() {
-  const color = state.settings.streamBgColor || "#ffffff";
+  const color = state.settings.streamBgColor || "#000000";
   if (state.settings.useGradientBg) {
-    streamSectionEl.style.backgroundImage = `linear-gradient(135deg, ${color}, #ffffff)`;
+    streamSectionEl.style.backgroundImage = `linear-gradient(135deg, ${color}, #000000)`;
     streamSectionEl.style.backgroundColor = "";
   } else {
     streamSectionEl.style.backgroundImage = "none";
@@ -427,7 +427,7 @@ function updateViewMode() {
 // -------- COLOR CONTROLS --------
 
 function initColorControls() {
-  colorStreamBgEl.value = state.settings.streamBgColor || "#ffffff";
+  colorStreamBgEl.value = state.settings.streamBgColor || "#000000";
   useGradientBgEl.checked = !!state.settings.useGradientBg;
 
   const root = getComputedStyle(document.documentElement);
@@ -435,7 +435,7 @@ function initColorControls() {
   const cardBorderFromState =
     state.settings.colors["--card-border-color"] ||
     root.getPropertyValue("--card-border-color").trim() ||
-    "#d1d5db";
+    "#ffffff";
   colorCardBorderEl.value = rgbToHex(cardBorderFromState);
 
   const accentFromState =
@@ -496,9 +496,9 @@ function handleReset() {
 
   initDefaultState();
   state.settings.colors = colors || {};
-  state.settings.streamBgColor = streamBgColor || "#ffffff";
+  state.settings.streamBgColor = streamBgColor || "#000000";
   state.settings.useGradientBg = !!useGradientBg;
-  state.settings.bannerImageData = bannerImageData || "";
+  state.settings.bannerImageData = bannerImageData || DEFAULT_STREAMER_IMAGE;
   state.settings.streamName = streamName || "";
   state.settings.viewMode = viewMode || "auction";
 
@@ -525,7 +525,7 @@ function handleBrandingChange() {
 
 function setupColorEvents() {
   colorStreamBgEl.addEventListener("input", (e) => {
-    state.settings.streamBgColor = e.target.value || "#ffffff";
+    state.settings.streamBgColor = e.target.value || "#000000";
     applyStreamBackground();
     saveState();
   });
