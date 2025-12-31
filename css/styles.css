@@ -254,7 +254,6 @@ body {
 
 .streamer-card {
   border-radius: 0;
-  aspect-ratio: 1 / 1;
   border: 3px solid var(--card-border-color);
   background-color: #ffffff;
   display: flex;
