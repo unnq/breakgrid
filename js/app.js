@@ -1,8 +1,7 @@
 // js/app.js
 
 // ------- TEAM DATA -------
-// You can add real logo URLs later in `logoUrl`.
-// For now, we show abbreviations in big text.
+// Add logoUrl paths if you have local or hosted team logos.
 
 const TEAMS = [
   { id: "ari", name: "Arizona Cardinals", short: "ARI", logoUrl: "" },
@@ -65,7 +64,6 @@ function loadState() {
     }
     const parsed = JSON.parse(raw);
 
-    // Rebuild teams from TEAMS list but keep taken / viewer info if matching ids.
     const teamsById = {};
     (parsed.teams || []).forEach((t) => {
       teamsById[t.id] = t;
@@ -77,14 +75,14 @@ function loadState() {
         ...base,
         taken: saved ? !!saved.taken : false,
         takenBy: saved ? saved.takenBy || "" : "",
-        logoUrl: base.logoUrl || saved?.logoUrl || ""
+        logoUrl: base.logoUrl || (saved && saved.logoUrl) || ""
       };
     });
 
     state.assignments = parsed.assignments || [];
     state.settings = parsed.settings || state.settings;
-  } catch (e) {
-    console.warn("Failed to load state, starting fresh.", e);
+  } catch (err) {
+    console.warn("Error loading state, starting fresh", err);
     initDefaultState();
   }
 }
@@ -122,20 +120,58 @@ function formatTime(ts) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-// ------- DOM CACHING -------
+// color helpers
+
+function rgbToHex(color) {
+  if (!color) return "#000000";
+  if (color.startsWith("#")) return color;
+
+  const match = color.match(
+    /rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/i
+  );
+  if (!match) return "#000000";
+
+  const r = parseInt(match[1], 10);
+  const g = parseInt(match[2], 10);
+  const b = parseInt(match[3], 10);
+
+  const toHex = (v) => {
+    const h = v.toString(16);
+    return h.length === 1 ? "0" + h : h;
+  };
+
+  return "#" + toHex(r) + toHex(g) + toHex(b);
+}
+
+function applyColor(varName, value) {
+  document.documentElement.style.setProperty(varName, value);
+  if (!state.settings.colors) state.settings.colors = {};
+  state.settings.colors[varName] = value;
+  saveState();
+}
+
+function restoreCustomColors() {
+  const colors = state.settings.colors || {};
+  Object.entries(colors).forEach(([name, val]) => {
+    document.documentElement.style.setProperty(name, val);
+  });
+}
+
+// ------- DOM -------
 
 const teamsGridEl = document.getElementById("teamsGrid");
 const assignmentsBodyEl = document.getElementById("assignmentsBody");
 
 const viewerNameInputEl = document.getElementById("viewerNameInput");
 const streamNameInputEl = document.getElementById("streamNameInput");
-const streamNameDisplayEl = document.getElementById("streamNameDisplay");
 const bannerLogoInputEl = document.getElementById("bannerLogoInput");
 const iconLogoInputEl = document.getElementById("iconLogoInput");
+const lastResultEl = document.getElementById("lastResult");
+
+const streamNameDisplayEl = document.getElementById("streamNameDisplay");
 const bannerLogoEl = document.getElementById("bannerLogo");
 const iconLogoEl = document.getElementById("iconLogo");
 const watermarkEl = document.getElementById("watermark");
-const lastResultEl = document.getElementById("lastResult");
 
 const rollButtonEl = document.getElementById("rollButton");
 const resetButtonEl = document.getElementById("resetButton");
@@ -145,14 +181,11 @@ const colorAccentEl = document.getElementById("colorAccent");
 const colorBackgroundEl = document.getElementById("colorBackground");
 const colorCardEl = document.getElementById("colorCard");
 
-const navButtons = document.querySelectorAll(".nav-btn");
-const streamViewEl = document.getElementById("streamView");
-const controlViewEl = document.getElementById("controlView");
-
 // ------- RENDERING -------
 
 function renderTeamsGrid() {
   teamsGridEl.innerHTML = "";
+
   state.teams.forEach((team) => {
     const card = document.createElement("div");
     card.className = "team-card" + (team.taken ? " team-card--taken" : "");
@@ -163,9 +196,9 @@ function renderTeamsGrid() {
 
     if (team.logoUrl) {
       const img = document.createElement("img");
-      img.className = "team-logo";
       img.src = team.logoUrl;
-      img.alt = `${team.name} logo`;
+      img.alt = team.name + " logo";
+      img.className = "team-logo";
       inner.appendChild(img);
     } else {
       const abbrev = document.createElement("div");
@@ -190,18 +223,18 @@ function renderTeamsGrid() {
 
     card.appendChild(inner);
     card.appendChild(labelRow);
-
     teamsGridEl.appendChild(card);
   });
 }
 
 function renderAssignments() {
   assignmentsBodyEl.innerHTML = "";
-  state.assignments.forEach((entry, idx) => {
+
+  state.assignments.forEach((entry, index) => {
     const tr = document.createElement("tr");
 
     const tdIndex = document.createElement("td");
-    tdIndex.textContent = idx + 1;
+    tdIndex.textContent = index + 1;
 
     const tdViewer = document.createElement("td");
     tdViewer.textContent = entry.viewer || "(no name)";
@@ -227,7 +260,6 @@ function renderBranding() {
   streamNameDisplayEl.textContent = streamName || "";
   watermarkEl.textContent = streamName ? streamName.toUpperCase() : "";
 
-  // Banner
   if (bannerLogoUrl) {
     bannerLogoEl.src = bannerLogoUrl;
     bannerLogoEl.style.display = "block";
@@ -236,7 +268,6 @@ function renderBranding() {
     bannerLogoEl.style.display = "none";
   }
 
-  // Icon
   if (iconLogoUrl) {
     iconLogoEl.src = iconLogoUrl;
     iconLogoEl.style.display = "block";
@@ -251,59 +282,20 @@ function renderBranding() {
 }
 
 function initColorControls() {
-  const rootStyles = getComputedStyle(document.documentElement);
+  const root = getComputedStyle(document.documentElement);
 
-  function getVar(name, fallback) {
-    const v = rootStyles.getPropertyValue(name).trim();
-    return v || fallback;
-  }
+  const primary = rgbToHex(root.getPropertyValue("--primary").trim() || "#2563eb");
+  const accent = rgbToHex(root.getPropertyValue("--accent").trim() || "#ef4444");
+  const bg = rgbToHex(root.getPropertyValue("--bg-page").trim() || "#f5f5f7");
+  const card = rgbToHex(root.getPropertyValue("--bg-card").trim() || "#ffffff");
 
-  colorPrimaryEl.value = rgbToHex(getVar("--primary", "#2aa9ff"));
-  colorAccentEl.value = rgbToHex(getVar("--accent", "#ff3b6a"));
-  colorBackgroundEl.value = rgbToHex(getVar("--bg-main", "#050810"));
-  colorCardEl.value = rgbToHex(getVar("--bg-card", "#101624"));
+  colorPrimaryEl.value = primary;
+  colorAccentEl.value = accent;
+  colorBackgroundEl.value = bg;
+  colorCardEl.value = card;
 }
 
-// Convert "rgb(...)" or hex to hex strictly
-function rgbToHex(color) {
-  if (!color) return "#000000";
-  if (color.startsWith("#")) return color;
-
-  const match = color.match(
-    /rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/i
-  );
-  if (!match) return "#000000";
-
-  const r = parseInt(match[1], 10);
-  const g = parseInt(match[2], 10);
-  const b = parseInt(match[3], 10);
-
-  return (
-    "#" +
-    [r, g, b]
-      .map((x) => {
-        const h = x.toString(16);
-        return h.length === 1 ? "0" + h : h;
-      })
-      .join("")
-  );
-}
-
-function applyColor(name, value) {
-  document.documentElement.style.setProperty(name, value);
-  if (!state.settings.colors) state.settings.colors = {};
-  state.settings.colors[name] = value;
-  saveState();
-}
-
-function restoreCustomColors() {
-  const colors = state.settings.colors || {};
-  Object.entries(colors).forEach(([k, v]) => {
-    document.documentElement.style.setProperty(k, v);
-  });
-}
-
-// ------- INTERACTIONS -------
+// ------- EVENTS -------
 
 function handleRoll() {
   const viewerName = viewerNameInputEl.value.trim() || "(no name)";
@@ -315,24 +307,21 @@ function handleRoll() {
   }
 
   const picked = randomItem(available);
-
-  // Mark team as taken
-  const teamIndex = state.teams.findIndex((t) => t.id === picked.id);
-  if (teamIndex !== -1) {
-    state.teams[teamIndex].taken = true;
-    state.teams[teamIndex].takenBy = viewerName;
+  const idx = state.teams.findIndex((t) => t.id === picked.id);
+  if (idx !== -1) {
+    state.teams[idx].taken = true;
+    state.teams[idx].takenBy = viewerName;
   }
 
-  // Record assignment
-  const entry = {
+  const assignment = {
     viewer: viewerName,
     teamId: picked.id,
     teamName: picked.name,
     short: picked.short,
     timestamp: Date.now()
   };
-  state.assignments.push(entry);
 
+  state.assignments.push(assignment);
   lastResultEl.textContent = `${viewerName} → ${picked.name} (${picked.short})`;
 
   renderTeamsGrid();
@@ -341,9 +330,14 @@ function handleRoll() {
 }
 
 function handleReset() {
-  if (!confirm("Reset all teams and assignments?")) return;
+  const confirmed = window.confirm("Reset all teams and assignments?");
+  if (!confirmed) return;
+
+  const colors = state.settings.colors || {};
   initDefaultState();
-  restoreCustomColors(); // preserve theme but clear teams/assignments
+  state.settings.colors = colors; // keep custom colors
+
+  restoreCustomColors();
   renderTeamsGrid();
   renderAssignments();
   renderBranding();
@@ -359,24 +353,6 @@ function handleBrandingChange() {
   saveState();
 }
 
-function setupViewSwitching() {
-  navButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      navButtons.forEach((b) => b.classList.remove("nav-btn--active"));
-      btn.classList.add("nav-btn--active");
-
-      const viewId = btn.dataset.view;
-      if (viewId === "streamView") {
-        streamViewEl.classList.add("view--active");
-        controlViewEl.classList.remove("view--active");
-      } else {
-        controlViewEl.classList.add("view--active");
-        streamViewEl.classList.remove("view--active");
-      }
-    });
-  });
-}
-
 function setupColorEvents() {
   colorPrimaryEl.addEventListener("input", (e) =>
     applyColor("--primary", e.target.value)
@@ -385,7 +361,7 @@ function setupColorEvents() {
     applyColor("--accent", e.target.value)
   );
   colorBackgroundEl.addEventListener("input", (e) =>
-    applyColor("--bg-main", e.target.value)
+    applyColor("--bg-page", e.target.value)
   );
   colorCardEl.addEventListener("input", (e) =>
     applyColor("--bg-card", e.target.value)
@@ -401,7 +377,6 @@ function init() {
   renderAssignments();
   renderBranding();
   initColorControls();
-  setupViewSwitching();
   setupColorEvents();
 
   rollButtonEl.addEventListener("click", handleRoll);
