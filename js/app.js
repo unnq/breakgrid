@@ -261,22 +261,8 @@ function renderTeamsGrid() {
       inner.appendChild(abbrev);
     }
 
-    const labelRow = document.createElement("div");
-    labelRow.className = "team-label-row";
-
-    const nameEl = document.createElement("div");
-    nameEl.className = "team-name";
-    nameEl.textContent = team.name;
-
-    const ownerEl = document.createElement("div");
-    ownerEl.className = "team-owner";
-    ownerEl.textContent = team.taken ? team.takenBy : "";
-
-    labelRow.appendChild(nameEl);
-    labelRow.appendChild(ownerEl);
-
     card.appendChild(inner);
-    card.appendChild(labelRow);
+
 
     teamsGridEl.appendChild(card);
   }
