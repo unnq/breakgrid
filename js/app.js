@@ -1,7 +1,6 @@
 // js/app.js
 
 // -------- TEAM DATA --------
-// Add logoUrl paths later when you have actual team logo images.
 
 const TEAMS = [
   { id: "ari", name: "Arizona Cardinals", short: "ARI", logoUrl: "" },
@@ -38,7 +37,7 @@ const TEAMS = [
   { id: "wsh", name: "Washington Commanders", short: "WSH", logoUrl: "" }
 ];
 
-const STORAGE_KEY = "card_break_roller_state_v3";
+const STORAGE_KEY = "card_break_roller_state_v4";
 
 // Grid constants: 10 x 4 with a central 2x4 streamer block.
 const GRID_COLUMNS = 10;
@@ -46,7 +45,6 @@ const GRID_ROWS = 4;
 const TOTAL_CELLS = GRID_COLUMNS * GRID_ROWS;
 
 // Reserved indices for streamer block (row-major, 0-based):
-// Layout (C = col, R = row):
 // R1:  0..9 (all teams)
 // R2:  10 11 12 [13 14 15 16] 17 18 19
 // R3:  20 21 22 [23 24 25 26] 27 28 29
@@ -68,7 +66,8 @@ const state = {
     bannerImageData: "", // uploaded streamer image (data URL)
     colors: {}, // CSS variable overrides
     streamBgColor: "#ffffff",
-    useGradientBg: false
+    useGradientBg: false,
+    viewMode: "auction" // "auction" | "results"
   }
 };
 
@@ -105,7 +104,8 @@ function loadState() {
       bannerImageData: savedSettings.bannerImageData || "",
       colors: savedSettings.colors || {},
       streamBgColor: savedSettings.streamBgColor || "#ffffff",
-      useGradientBg: !!savedSettings.useGradientBg
+      useGradientBg: !!savedSettings.useGradientBg,
+      viewMode: savedSettings.viewMode === "results" ? "results" : "auction"
     };
   } catch (err) {
     console.warn("Error loading state, starting fresh", err);
@@ -125,7 +125,8 @@ function initDefaultState() {
     bannerImageData: "",
     colors: {},
     streamBgColor: "#ffffff",
-    useGradientBg: false
+    useGradientBg: false,
+    viewMode: "auction"
   };
 }
 
@@ -185,7 +186,6 @@ function restoreCustomCssColors() {
 function applyStreamBackground() {
   const color = state.settings.streamBgColor || "#ffffff";
   if (state.settings.useGradientBg) {
-    // Simple gradient using selected color to white
     streamSectionEl.style.backgroundImage = `linear-gradient(135deg, ${color}, #ffffff)`;
     streamSectionEl.style.backgroundColor = "";
   } else {
@@ -197,6 +197,7 @@ function applyStreamBackground() {
 // -------- DOM ELEMENTS --------
 
 const teamsGridEl = document.getElementById("teamsGrid");
+const resultsGridEl = document.getElementById("resultsGrid");
 const assignmentsBodyEl = document.getElementById("assignmentsBody");
 
 const viewerNameInputEl = document.getElementById("viewerNameInput");
@@ -218,12 +219,16 @@ const bannerDropZoneEl = document.getElementById("bannerDropZone");
 const bannerFileInputEl = document.getElementById("bannerFileInput");
 const bannerPreviewEl = document.getElementById("bannerPreview");
 
-// -------- RENDERING --------
+const auctionViewEl = document.getElementById("auctionView");
+const resultsViewEl = document.getElementById("resultsView");
+const viewAuctionBtnEl = document.getElementById("viewAuctionBtn");
+const viewResultsBtnEl = document.getElementById("viewResultsBtn");
+
+// -------- RENDERING: AUCTION GRID --------
 
 function renderTeamsGrid() {
   teamsGridEl.innerHTML = "";
 
-  // Place team cards into the non-reserved positions
   const teams = state.teams;
   const maxTeams = Math.min(teams.length, NON_RESERVED_INDICES.length);
 
@@ -275,7 +280,7 @@ function renderTeamsGrid() {
     teamsGridEl.appendChild(card);
   }
 
-  // Add central streamer block (one element spanning 2 rows x 4 cols)
+  // Central streamer block (2 rows x 4 columns, image only)
   const streamerCard = document.createElement("div");
   streamerCard.className = "streamer-card";
   streamerCard.style.gridColumn = "4 / span 4"; // columns 4,5,6,7
@@ -284,10 +289,7 @@ function renderTeamsGrid() {
   const innerStreamer = document.createElement("div");
   innerStreamer.className = "streamer-card-inner";
 
-  const hasImage = !!state.settings.bannerImageData;
-  const hasName = !!state.settings.streamName;
-
-  if (hasImage) {
+  if (state.settings.bannerImageData) {
     const img = document.createElement("img");
     img.className = "streamer-card-image";
     img.src = state.settings.bannerImageData;
@@ -295,14 +297,56 @@ function renderTeamsGrid() {
     innerStreamer.appendChild(img);
   }
 
-  const nameDiv = document.createElement("div");
-  nameDiv.className = "streamer-card-name";
-  nameDiv.textContent = hasName ? state.settings.streamName : "Stream Name";
-  innerStreamer.appendChild(nameDiv);
-
   streamerCard.appendChild(innerStreamer);
   teamsGridEl.appendChild(streamerCard);
 }
+
+// -------- RENDERING: RESULTS VIEW --------
+
+function renderResultsGrid() {
+  resultsGridEl.innerHTML = "";
+
+  state.teams.forEach((team) => {
+    const card = document.createElement("div");
+    card.className = "result-card";
+
+    const top = document.createElement("div");
+
+    if (team.logoUrl) {
+      const logo = document.createElement("img");
+      logo.src = team.logoUrl;
+      logo.alt = team.name + " logo";
+      logo.className = "result-team-logo";
+      top.appendChild(logo);
+    } else {
+      const abbrev = document.createElement("div");
+      abbrev.className = "result-team-abbrev";
+      abbrev.textContent = team.short;
+      top.appendChild(abbrev);
+    }
+
+    const teamNameEl = document.createElement("div");
+    teamNameEl.className = "result-team-name";
+    teamNameEl.textContent = team.name;
+
+    const viewerEl = document.createElement("div");
+    viewerEl.className = "result-viewer-name";
+    if (team.taken && team.takenBy) {
+      viewerEl.textContent = team.takenBy;
+    } else {
+      viewerEl.textContent = "Not assigned";
+      viewerEl.classList.add("result-viewer-name--unassigned");
+    }
+
+    card.appendChild(top);
+    card.appendChild(teamNameEl);
+    card.appendChild(viewerEl);
+
+    resultsGridEl.appendChild(card);
+  });
+}
+
+// -------- RENDERING: ASSIGNMENTS / BRANDING --------
 
 function renderAssignments() {
   assignmentsBodyEl.innerHTML = "";
@@ -351,25 +395,48 @@ function renderBranding() {
     bannerPreviewEl.textContent = "No image selected";
   }
 
-  // Streamer card uses same data; re-render grid to reflect it
+  // Grid + results rely on same data
   renderTeamsGrid();
+  renderResultsGrid();
 }
 
+// -------- VIEW MODE TOGGLING --------
+
+function updateViewMode() {
+  const mode = state.settings.viewMode || "auction";
+
+  if (mode === "results") {
+    auctionViewEl.classList.add("stream-view--hidden");
+    resultsViewEl.classList.remove("stream-view--hidden");
+  } else {
+    resultsViewEl.classList.add("stream-view--hidden");
+    auctionViewEl.classList.remove("stream-view--hidden");
+  }
+
+  viewAuctionBtnEl.classList.toggle(
+    "view-toggle-btn--active",
+    mode === "auction"
+  );
+  viewResultsBtnEl.classList.toggle(
+    "view-toggle-btn--active",
+    mode === "results"
+  );
+}
+
+// -------- COLOR CONTROLS --------
+
 function initColorControls() {
-  // Stream background color from settings
   colorStreamBgEl.value = state.settings.streamBgColor || "#ffffff";
   useGradientBgEl.checked = !!state.settings.useGradientBg;
 
   const root = getComputedStyle(document.documentElement);
 
-  // Card border
   const cardBorderFromState =
     state.settings.colors["--card-border-color"] ||
     root.getPropertyValue("--card-border-color").trim() ||
     "#d1d5db";
   colorCardBorderEl.value = rgbToHex(cardBorderFromState);
 
-  // Accent
   const accentFromState =
     state.settings.colors["--accent"] ||
     root.getPropertyValue("--accent").trim() ||
@@ -408,6 +475,7 @@ function handleRoll() {
   lastResultEl.textContent = `${viewerName} → ${picked.name} (${picked.short})`;
 
   renderTeamsGrid();
+  renderResultsGrid();
   renderAssignments();
   saveState();
 }
@@ -416,9 +484,14 @@ function handleReset() {
   const confirmed = window.confirm("Reset all teams and assignments?");
   if (!confirmed) return;
 
-  // Preserve theme settings
-  const { colors, streamBgColor, useGradientBg, bannerImageData, streamName } =
-    state.settings;
+  const {
+    colors,
+    streamBgColor,
+    useGradientBg,
+    bannerImageData,
+    streamName,
+    viewMode
+  } = state.settings;
 
   initDefaultState();
   state.settings.colors = colors || {};
@@ -426,13 +499,16 @@ function handleReset() {
   state.settings.useGradientBg = !!useGradientBg;
   state.settings.bannerImageData = bannerImageData || "";
   state.settings.streamName = streamName || "";
+  state.settings.viewMode = viewMode || "auction";
 
   restoreCustomCssColors();
   applyStreamBackground();
   renderTeamsGrid();
+  renderResultsGrid();
   renderAssignments();
   renderBranding();
   initColorControls();
+  updateViewMode();
 
   lastResultEl.textContent = "Break reset.";
   saveState();
@@ -444,27 +520,25 @@ function handleBrandingChange() {
   renderBranding();
 }
 
+// Color events
+
 function setupColorEvents() {
-  // Stream background color
   colorStreamBgEl.addEventListener("input", (e) => {
     state.settings.streamBgColor = e.target.value || "#ffffff";
     applyStreamBackground();
     saveState();
   });
 
-  // Gradient toggle
   useGradientBgEl.addEventListener("change", (e) => {
     state.settings.useGradientBg = e.target.checked;
     applyStreamBackground();
     saveState();
   });
 
-  // Card border color (CSS var)
   colorCardBorderEl.addEventListener("input", (e) => {
     applyCssColor("--card-border-color", e.target.value);
   });
 
-  // Accent color for X / highlights (CSS var)
   colorAccentEl.addEventListener("input", (e) => {
     applyCssColor("--accent", e.target.value);
   });
@@ -485,20 +559,16 @@ function handleBannerFile(file) {
 }
 
 function setupBannerUpload() {
-  // Click zone triggers file input
   bannerDropZoneEl.addEventListener("click", () => {
     bannerFileInputEl.click();
   });
 
-  // Handle file selection
   bannerFileInputEl.addEventListener("change", (e) => {
     const file = e.target.files && e.target.files[0];
     handleBannerFile(file);
-    // Reset input so selecting the same file again still triggers change
     e.target.value = "";
   });
 
-  // Drag & drop
   bannerDropZoneEl.addEventListener("dragover", (e) => {
     e.preventDefault();
     bannerDropZoneEl.classList.add("upload-dropzone--hover");
@@ -517,6 +587,22 @@ function setupBannerUpload() {
   });
 }
 
+// View toggle buttons
+
+function setupViewToggle() {
+  viewAuctionBtnEl.addEventListener("click", () => {
+    state.settings.viewMode = "auction";
+    saveState();
+    updateViewMode();
+  });
+
+  viewResultsBtnEl.addEventListener("click", () => {
+    state.settings.viewMode = "results";
+    saveState();
+    updateViewMode();
+  });
+}
+
 // -------- INIT --------
 
 function init() {
@@ -525,16 +611,19 @@ function init() {
   applyStreamBackground();
 
   renderTeamsGrid();
+  renderResultsGrid();
   renderAssignments();
   renderBranding();
 
   initColorControls();
   setupColorEvents();
   setupBannerUpload();
+  setupViewToggle();
+
+  updateViewMode();
 
   rollButtonEl.addEventListener("click", handleRoll);
   resetButtonEl.addEventListener("click", handleReset);
-
   streamNameInputEl.addEventListener("input", handleBrandingChange);
 }
 
