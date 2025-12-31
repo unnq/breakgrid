@@ -90,10 +90,7 @@ body {
   margin-bottom: 1rem;
 }
 
-.teams-grid-wrapper {
-  border-top: 1px solid var(--border-subtle);
-  padding-top: 0.75rem;
-}
+
 
 /* Fixed 10 x 4 grid for portrait capture */
 
