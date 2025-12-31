@@ -16,20 +16,30 @@
     </header>
 
     <main class="app-main">
-      <!-- STREAM AREA (for OBS crop, portrait grid area only) -->
+      <!-- STREAM AREA (for OBS crop, only this section) -->
       <section class="stream-section" id="streamSection">
-        <div class="teams-grid-wrapper">
-          <!-- 10 x 4 grid, central block reserved for streamer -->
-          <div id="teamsGrid" class="teams-grid"></div>
+        <!-- Auction view (team grid) -->
+        <div id="auctionView" class="stream-view">
+          <div class="teams-grid-wrapper">
+            <!-- 10 x 4 grid, central block reserved for streamer image -->
+            <div id="teamsGrid" class="teams-grid"></div>
+          </div>
+        </div>
+
+        <!-- Results view (team → viewer mapping) -->
+        <div id="resultsView" class="stream-view stream-view--hidden">
+          <div class="results-grid-wrapper">
+            <div id="resultsGrid" class="results-grid"></div>
+          </div>
         </div>
 
         <div id="watermark" class="watermark"></div>
       </section>
 
-      <!-- CONTROLS BELOW GRID -->
+      <!-- CONTROLS BELOW GRID (not in OBS crop) -->
       <section class="controls-section">
         <div class="controls-grid">
-          <!-- Roll / current viewer -->
+          <!-- Roll / current viewer + view toggle -->
           <div class="control-panel">
             <h2>Roll Next Team</h2>
             <label class="field-label" for="viewerNameInput">Current bidder / viewer</label>
@@ -46,6 +56,24 @@
             </button>
 
             <p id="lastResult" class="last-result"></p>
+
+            <div class="view-toggle">
+              <span class="view-toggle-label">View:</span>
+              <button
+                id="viewAuctionBtn"
+                class="secondary-btn view-toggle-btn view-toggle-btn--active"
+                type="button"
+              >
+                Auction grid
+              </button>
+              <button
+                id="viewResultsBtn"
+                class="secondary-btn view-toggle-btn"
+                type="button"
+              >
+                Results
+              </button>
+            </div>
           </div>
 
           <!-- Assignment list -->
@@ -117,7 +145,7 @@
             </label>
 
             <p class="hint-text">
-              In OBS, add a Browser source pointed at this page and crop to just the grid area for the overlay.
+              In OBS, add a Browser source pointed at this page and crop to just the stream area above.
             </p>
           </div>
         </div>
