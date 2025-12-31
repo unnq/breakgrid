@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Card Break Team Roller</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="app-title">
+        <img id="iconLogo" class="icon-logo" alt="Icon logo" />
+        <span id="appTitleText">Card Break Team Roller</span>
+      </div>
+      <nav class="app-nav">
+        <button class="nav-btn nav-btn--active" data-view="streamView">Stream View</button>
+        <button class="nav-btn" data-view="controlView">Control Panel</button>
+      </nav>
+    </header>
+
+    <main class="app-main">
+      <!-- STREAM VIEW (for OBS browser capture) -->
+      <section id="streamView" class="view view--active">
+        <div class="stream-header">
+          <div class="stream-brand">
+            <img id="bannerLogo" class="banner-logo" alt="Banner logo" />
+            <div class="stream-text-block">
+              <div id="streamNameDisplay" class="stream-name"></div>
+              <div class="stream-subtitle">Random Team Break</div>
+            </div>
+          </div>
+          <div id="liveStatus" class="live-status">LIVE</div>
+        </div>
+
+        <div class="stream-grid-wrapper">
+          <div id="teamsGrid" class="teams-grid"></div>
+        </div>
+
+        <div id="watermark" class="watermark"></div>
+      </section>
+
+      <!-- CONTROL PANEL (for the streamer only) -->
+      <section id="controlView" class="view">
+        <div class="control-layout">
+          <!-- Rolling / actions -->
+          <div class="control-column">
+            <h2>Roll Next Team</h2>
+            <label class="field-label" for="viewerNameInput">Current bidder / viewer</label>
+            <input
+              id="viewerNameInput"
+              class="text-input"
+              type="text"
+              placeholder="Type viewer name here"
+            />
+
+            <button id="rollButton" class="primary-btn">Roll Random Team</button>
+
+            <button id="resetButton" class="secondary-btn secondary-btn--danger">
+              Reset Break (Clear All)
+            </button>
+
+            <p id="lastResult" class="last-result"></p>
+          </div>
+
+          <!-- Assignments table -->
+          <div class="control-column">
+            <h2>Assignments</h2>
+            <div class="table-wrapper">
+              <table class="assignments-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Viewer</th>
+                    <th>Team</th>
+                    <th>Time</th>
+                  </tr>
+                </thead>
+                <tbody id="assignmentsBody">
+                  <!-- Rows added dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Branding / theme controls -->
+          <div class="control-column">
+            <h2>Branding & Theme</h2>
+
+            <label class="field-label" for="streamNameInput">Stream / Channel Name</label>
+            <input
+              id="streamNameInput"
+              class="text-input"
+              type="text"
+              placeholder="e.g. KlutchBros Breaks"
+            />
+
+            <label class="field-label" for="bannerLogoInput">
+              Banner Logo URL (top-left)
+            </label>
+            <input
+              id="bannerLogoInput"
+              class="text-input"
+              type="text"
+              placeholder="https://example.com/banner.png"
+            />
+
+            <label class="field-label" for="iconLogoInput">
+              Icon Logo URL (header)
+            </label>
+            <input
+              id="iconLogoInput"
+              class="text-input"
+              type="text"
+              placeholder="https://example.com/icon.png"
+            />
+
+            <div class="color-controls">
+              <div class="color-field">
+                <label for="colorPrimary">Primary Color</label>
+                <input id="colorPrimary" type="color" />
+              </div>
+              <div class="color-field">
+                <label for="colorAccent">Accent Color</label>
+                <input id="colorAccent" type="color" />
+              </div>
+              <div class="color-field">
+                <label for="colorBackground">Background</label>
+                <input id="colorBackground" type="color" />
+              </div>
+              <div class="color-field">
+                <label for="colorCard">Card Background</label>
+                <input id="colorCard" type="color" />
+              </div>
+            </div>
+
+            <p class="hint-text">
+              Tip: In OBS, add a browser source pointing to this page and use the Stream
+              View tab for a clean overlay.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      Card Break Team Roller · Frontend-only demo
+    </footer>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
